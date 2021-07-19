@@ -114,33 +114,44 @@ b) We can aslo create a new table with distinct records and delete the original 
 
 
 
+
+--Employee ( empid integer, mgrid integer, deptid integer, salary integer)
+--Dept (deptid integer, deptname text)
+
+CREATE TABLE dbo.Dept (deptid INT NOT NULL IDENTITY PRIMARY KEY, deptname VARCHAR(50));
+SET IDENTITY_INSERT dbo.Dept OFF
+INSERT INTO dbo.Dept(deptid, deptname) VALUES (1,'dept1'),(2,'dept2'),(3,'dept3'),(4,'dept4'),(5,'dept5');
+
+CREATE TABLE dbo.Employee (empid INT NOT NULL IDENTITY PRIMARY KEY, mgrid INT,
+deptid INT NOT NULL, salary INT NOT NULL,
+CONSTRAINT fk_deptid FOREIGN KEY (deptid) REFERENCES dbo.Dept(deptid));
+SET IDENTITY_INSERT dbo.Employee ON
+INSERT INTO dbo.Employee(empid, mgrid, deptid, salary) 
+VALUES (1,NULL,1,100),(2,1,1,99),(3,1,1,98),(4,2,2,97),(5,2,2,96),(6,2,2,95)
+,(7,3,3,94),(8,3,3,93),(9,3,3,92),(10,4,4,91),(11,4,4,90),(12,4,4,89);
+INSERT INTO dbo.Employee(empid, mgrid, deptid, salary) 
+VALUES (13,4,4,88);
+
+SELECT * FROM dbo.Dept;
+SELECT * FROM dbo.Employee;
+
 --12
 We can list out distinct manager id and check if employee id is not there then those employee donot
 manage anybody
-SELECT empid FROM Employee NOT IN (SELECT DISTINCT mgrid FROM Employee);
+SELECT empid FROM Employee WHERE empid NOT IN (SELECT DISTINCT mgrid FROM Employee WHERE mgrid IS NOT NULL);
 
 --13
-SELECT d.deptname, dt.TotalEmployees FROM Dept d INNER JOIN
+SELECT d.deptname, dt.TotalEmployees FROM dbo.Dept d INNER JOIN
 (SELECT deptid, COUNT(empid) as TotalEmployees, dense_rank() over(
- ORDER BY COUNT(empid)) rnk FROM Employee GROUP BY deptid) dt
+ ORDER BY COUNT(empid)) rnk FROM dbo.Employee GROUP BY deptid) dt
  ON d.deptid = dt.deptid
  WHERE dt.rnk = 1;
 
  --14
- SELECT d.deptname, dt.empid, dt.salary FROM Dept d
- INNER JOIN
- (SELECT deptid, empid, salary, DENSE_RANK() over(PARTITION BY deptid ORDER BY salary DESC) rnk
- FROM Employee WHERE rnk <=3) dt
- ON dt.deptid = d.deptid
- ORDER BY d.deptname;
-
- /*
-SELECT * FROM Suppliers;
-SELECT * FROM Customers;
-SELECT * FROM EmployeeTerritories;
-SELECT * FROM Employees;
-SELECT * FROM Orders;
-SELECT * FROM [Order Details];
-SELECT * FROM Products;
-SELECT * FROM Shippers;
-*/
+SELECT d.deptname, dt.empid, dt.salary FROM Dept d
+INNER JOIN
+(SELECT empid, deptid, salary, DENSE_RANK() over(PARTITION BY deptid ORDER BY salary DESC) rk
+FROM Employee) dt
+ON dt.deptid = d.deptid
+WHERE dt.rk <= 3
+ORDER BY d.deptname;
